@@ -1,0 +1,305 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    #map { width: 100%; height: 100vh; }
+    .leaflet-routing-container { display: none; }
+
+    #search-results {
+        position: absolute;
+        top: 120px;
+        left: 10px;
+        max-height: 300px;
+        width: 100%;
+        max-width: 400px;
+        overflow-y: auto;
+        background: #fff;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        z-index: 1000;
+    }
+
+    .search-result-item {
+        padding: 10px 15px;
+        font-size: 14px;
+        color: #333;
+        transition: background-color 0.2s ease;
+        border-bottom: 1px solid #eee;
+    }
+
+    .search-result-item:last-child {
+        border-bottom: none;
+    }
+
+    .search-result-item:hover {
+        background-color: #f0f0f0;
+    }
+
+    .search-container,
+    .request-form {
+        border: 1px solid #ccc;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 10px;
+        width: 300px;
+        padding: 20px;
+        border-radius: 10px;
+        background: white;
+        top: 10px;
+        left: 10px;
+    }
+
+    .request-form {
+        top: 160px;
+    }
+
+    select, input, textarea, button {
+        width: 100%;
+    }
+
+    h3 {
+        margin-top: 20px;
+        padding-left: 10px;
+    }
+</style>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+
+<form class="request-form" method="post">
+    {% csrf_token %}
+    <label>Select Blood Group:</label>
+    <select name="blood_group" required>
+        <option value="" disabled selected>Blood Group</option>
+        <option value="A+">A+</option>
+        <option value="A-">A-</option>
+        <option value="B+">B+</option>
+        <option value="B-">B-</option>
+        <option value="O+">O+</option>
+        <option value="O-">O-</option>
+        <option value="AB+">AB+</option>
+        <option value="AB-">AB-</option>
+    </select>
+
+    <label>Enter Name:</label>
+    <input type="text" name="name" required placeholder="Enter your name">
+
+    <label>Detail Address:</label>
+    <input type="text" name="address" required placeholder="Enter detailed address">
+
+    <label>Enter Contact Number:</label>
+    <input type="text" name="contact" required placeholder="Enter contact number">
+
+    <label>Enter The Donation Date:</label>
+    <input type="date" name="donation_date" required>
+
+    <label>Enter The Donation Time:</label>
+    <input type="time" name="donation_time" required>
+
+    <label for="donation_note">Note:</label>
+    <textarea id="donation_note" name="donation_note" required placeholder="Write your note here"></textarea>
+
+    <input type="hidden" name="patient_latitude" id="patient_latitude">
+    <input type="hidden" name="patient_longitude" id="patient_longitude">
+    <input type="hidden" name="the_radius" id="selected-radius">
+
+    <button type="submit">Send Blood Request</button>
+</form>
+
+<div class="search-container">
+    <input type="number" class="radius-field" name="radius" step="0.1" min="1" required placeholder="Search Radius (km)">
+    <input type="text" id="search-box" placeholder="Search location (e.g. Hospital, City)">
+    <button type="button" id="find-location-btn">Find Location</button>
+    <label>Filter Donors by Blood Group:</label>
+    <select id="filter-blood-group" onchange="filterDonorsByBloodGroup()">
+        <option value="">All Blood Groups</option>
+        <option value="A+">A+</option>
+        <option value="A-">A-</option>
+        <option value="B+">B+</option>
+        <option value="B-">B-</option>
+        <option value="O+">O+</option>
+        <option value="O-">O-</option>
+        <option value="AB+">AB+</option>
+        <option value="AB-">AB-</option>
+    </select>
+</div>
+<div id="search-results"></div>
+
+<h3>Total Donors Found:</h3>
+{% for donor in donors %}
+    <p>{{ donor.user.username }} - {{ donor.longitude }} - {{ donor.latitude }} ({{ donor.blood_group }})</p>
+{% endfor %}
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
+<script>
+    const map = L.map("map").setView([23.8103, 90.4125], 14);
+    L.tileLayer('https://{s}.google.com/vt?lyrs=s,h&x={x}&y={y}&z={z}', {
+        maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+    }).addTo(map);
+
+    let patientMarker = null, searchCircle = null;
+
+    const redIcon = L.icon({
+        iconUrl: 'https://static.vecteezy.com/system/resources/previews/018/888/895/non_2x/red-map-icon-png.png',
+        iconSize: [40, 40],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32]
+    });
+
+    function setPatientLocation(lat, lng) {
+        const radius = parseFloat(document.querySelector("input[name='radius']").value || 1) * 1000;
+        map.setView([lat, lng], 14);
+
+        if (patientMarker) {
+            patientMarker.setLatLng([lat, lng]);
+        } else {
+            patientMarker = L.marker([lat, lng], { draggable: true }).addTo(map)
+                .bindPopup("Patient Location").openPopup();
+
+            patientMarker.on('dragend', function () {
+                const pos = patientMarker.getLatLng();
+                document.getElementById("patient_latitude").value = pos.lat;
+                document.getElementById("patient_longitude").value = pos.lng;
+                if (searchCircle) searchCircle.setLatLng(pos);
+                renderDonors(document.getElementById("filter-blood-group").value);
+                submitFormIfReady();
+            });
+        }
+
+        if (searchCircle) {
+            searchCircle.setLatLng([lat, lng]).setRadius(radius);
+        } else {
+            searchCircle = L.circle([lat, lng], { color: "blue", fillOpacity: 0.1, radius }).addTo(map);
+        }
+
+        document.getElementById("patient_latitude").value = lat;
+        document.getElementById("patient_longitude").value = lng;
+
+        renderDonors(document.getElementById("filter-blood-group").value);
+    }
+
+    navigator.geolocation.getCurrentPosition(pos => {
+        setPatientLocation(pos.coords.latitude, pos.coords.longitude);
+    }, () => console.warn("Geolocation not available."));
+
+    function performSearch(query) {
+        if (!query.trim()) return;
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`)
+        .then(response => response.json())
+        .then(data => {
+            const resultsDiv = document.getElementById("search-results");
+            resultsDiv.innerHTML = "";
+            resultsDiv.style.display = data.length ? "block" : "none";
+
+            data.forEach(place => {
+                const div = document.createElement("div");
+                div.className = "search-result-item";
+                div.textContent = place.display_name;
+                div.onclick = () => {
+                    setPatientLocation(parseFloat(place.lat), parseFloat(place.lon));
+                    document.getElementById("search-box").value = place.display_name;
+                    resultsDiv.style.display = "none";
+                };
+                resultsDiv.appendChild(div);
+            });
+        });
+    }
+
+    document.getElementById("find-location-btn").addEventListener("click", function () {
+        performSearch(document.getElementById("search-box").value);
+    });
+
+    document.querySelector(".request-form").addEventListener("submit", function () {
+        document.getElementById("selected-radius").value = document.querySelector(".radius-field").value;
+    });
+
+    document.querySelector("input[name='radius']").addEventListener("input", function () {
+        const radius = parseFloat(this.value || 1) * 1000;
+        if (searchCircle) searchCircle.setRadius(radius);
+        renderDonors(document.getElementById("filter-blood-group").value);
+    });
+
+    function isWithinRadius(donorLat, donorLng, patientLat, patientLng, radiusMeters) {
+        const R = 6371e3;
+        const toRad = deg => deg * Math.PI / 180;
+        const φ1 = toRad(patientLat), φ2 = toRad(donorLat);
+        const Δφ = toRad(donorLat - patientLat);
+        const Δλ = toRad(donorLng - patientLng);
+        const a = Math.sin(Δφ/2)**2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2)**2;
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c <= radiusMeters;
+    }
+
+    const donorMarkers = [];
+
+    function renderDonors(filterGroup = "") {
+        donorMarkers.forEach(m => map.removeLayer(m));
+        donorMarkers.length = 0;
+
+        const patientLat = parseFloat(document.getElementById("patient_latitude").value);
+        const patientLng = parseFloat(document.getElementById("patient_longitude").value);
+        const radius = parseFloat(document.querySelector("input[name='radius']").value || 1) * 1000;
+
+        const donors = [
+            {% for donor in donors %}
+                {
+                    lat: {{ donor.latitude }},
+                    lng: {{ donor.longitude }},
+                    username: "{{ donor.user.username }}",
+                    bloodGroup: "{{ donor.blood_group }}"
+                },
+            {% endfor %}
+        ];
+
+        donors.forEach(d => {
+            const inRadius = isWithinRadius(d.lat, d.lng, patientLat, patientLng, radius);
+            if (inRadius && (!filterGroup || d.bloodGroup === filterGroup)) {
+                const marker = L.marker([d.lat, d.lng], { icon: redIcon }).addTo(map)
+                    .bindPopup(`${d.username} (${d.bloodGroup})`);
+                donorMarkers.push(marker);
+            }
+        });
+    }
+
+    document.getElementById("filter-blood-group").addEventListener("change", function () {
+        renderDonors(this.value);
+    });
+
+    function submitFormIfReady() {
+        const radius = document.querySelector("input[name='radius']").value;
+        const lat = document.getElementById("patient_latitude").value;
+        const lng = document.getElementById("patient_longitude").value;
+        if (radius && lat && lng) {
+            if (donorMarkers.length === 0) {
+                alert("No donors found in this radius. Please expand radius or change location.");
+                return;
+            }
+            document.querySelector(".request-form").submit();
+        }
+    }
+
+    const latLongDisplay = L.DomUtil.create('div', 'lat-long-display');
+    Object.assign(latLongDisplay.style, {
+        position: 'absolute',
+        top: '10px',
+        right: '10px',
+        backgroundColor: 'white',
+        padding: '5px',
+        border: '1px solid #ccc',
+        zIndex: 1000,
+        borderRadius: '5px'
+    });
+    latLongDisplay.innerHTML = "Lat: 0, Lng: 0";
+    map.getContainer().appendChild(latLongDisplay);
+
+    map.on('mousemove', e => {
+        latLongDisplay.innerHTML = `Lat: ${e.latlng.lat.toFixed(6)}, Lng: ${e.latlng.lng.toFixed(6)}`;
+    });
+</script>
+{% endblock %}

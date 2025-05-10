@@ -1,0 +1,408 @@
+<section class="container  mx-auto bg-red-100 grid grid-cols-3 gap-6 p-6">
+    {% for request in my_requests_for_blood %}
+    <div class="card card-border bg-base-200  ">
+      <div class="card-body">
+        <p class="text-2xl font-semibold">Requester Name: {{ request.requester.username }}</p>
+        <p class="font-semibold">Blood Group:  {{ request.blood_group }}</p>
+        <p class="font-semibold">Accepted {{ request.accepted_count }}/2 times</p>
+
+        <p class="font-semibold">Reguest Status: {{ request.status }}</p>
+  
+        <div class="font-semibold text-red-500">
+          {% if request.accepted_donors.all %}
+  
+          <!-- Request modal -->
+         <div>
+            <button
+            class="btn bg-blue-400"
+            onclick="document.getElementById('modal_{{ request.id }}').showModal()"
+          >
+            Donors
+          </button>
+
+          {% if request.final_donors.all %}
+          <button class="btn btn-primary" onclick="showRequestOnMap({{ request.id }})">See on Map</button>
+      {% endif %}
+  
+         </div>
+          <dialog id="modal_{{ request.id }}" class="modal">
+            <div class="modal-box">
+              {% for donor in request.accepted_donors.all %}
+              <div>
+                <p>{{ donor.username }}- {{donor.id}}</p>
+                <p>{{donor.donorprofile.blood_group}}</p>
+                <p>{{donor.donorprofile.phone}}</p>
+                <p>{{donor.donorprofile.blood_group}}</p>
+                <p>{{donor.donorprofile.detailedAddress}}</p>
+                
+                
+                <div class="div p-4">
+                  {% if donor in request.final_donors.all %}
+                    <p class="badge bg-success">Approved</p>
+                  {% elif donor in request.rejected_donors_by_requester.all %}
+                    <p class="badge bg-danger">Rejected</p>
+                  {% else %}
+                  <a
+                    href="{% url 'approve_blood_request' request.id donor.id %}"
+                    class="btn btn-primary"
+                    >Approve</a
+                  >
+                  <a
+                    href="{% url 'reject_donor_request' request.id donor.id %}"
+                    class="btn btn-warning"
+                    >Reject</a
+                  >
+                  {% endif %}
+                  <hr>
+                </div>
+              </div>
+              {% endfor %}
+              <div class="modal-action">
+                <form method="dialog">
+                  <button class="btn">Close</button>
+                </form>
+              </div>
+            </div>
+          </dialog>
+  
+          {% else %}
+          <p>No accepted donors yet.</p>
+          {% endif %}
+        </div>
+
+      
+  
+        <!-- new help modal -->
+        <div>
+          <button
+            class="btn bg-amber-400"
+            onclick="document.getElementById('help_modal_{{ request.id }}').showModal()"
+          >
+            Suggest Donor
+          </button>
+  
+           <dialog id="help_modal_{{ request.id }}" class="modal">
+            <div class="modal-box">
+
+                <div class="bg-red-600 p-6 ">
+                    <p class="text-xl font-bold text-white ">Help Offers</p>
+                </div>
+
+              <div class="help-posts bg-red-50 h-50 flex justify-center items-center" data-request-id="{{ request.id }}">
+
+                 {% comment %} header div {% endcomment %}
+               
+                {% for post in help_post %}
+
+               
+                <div
+                  class="post"
+                  data-blood-id="{{ post.blood_request_id }}"
+                  style="display: none"
+                >
+                  <p>{{ post.helper.user.username }}</p>
+                  <p>{{ post.name }}</p>
+                  <p>{{ post.phone }}</p>
+                  <p>{{ post.created_at }}</p>
+                  <p>{{ post.message }}</p>
+                  <hr />
+                </div>
+                {% endfor %}
+                <p class="no-help-msg text-4xl font-bold text-center  text-red-500 p-4" style="display: none">
+                  No help offers yet ! 
+                </p>
+              </div>
+              <div class="modal-action">
+                <form method="dialog">
+                  <button class="btn rounded-2xl bg-red-500 px-6 text-white border-none">Close</button>
+                </form>
+              </div>
+            </div>
+          </dialog> 
+
+      
+  
+        <!-- content -->
+        
+        
+           
+            <a href="{% url 'delete_blood_request' request.id %}" class="btn  bg-red-500 text-white">Delete</a>
+        </div>
+        
+      </div>
+    </div>
+    {% endfor %}
+  </section>
+
+
+
+
+
+  2ndone 
+
+
+
+
+  
+<section class="grid grid-cols-2" border="1" style="width: 80% ">
+{% if active_requests_myGroup %}
+    
+
+        {% for request in active_requests_myGroup %}
+            {% if user not in request.request_ignored_by_donors.all %}
+
+            <div class="card card-border bg-base-300 w-96">
+                <div class="card-body">
+                  <h2 class="card-title">Requester: {{ request.requester.username }}</h2>
+                  <p>Blood Gr- {{ request.blood_group }}</p>
+                  
+                  <p>Requester Address:  {{ request.detail_address }}</p>
+                  <p>Description: {{ request.description }}</p>
+                  <p>Phone Number: {{ request.requester.donorprofile.phone }}</p>
+                  <p>Total accepted: {{ request.accepted_count }}/2</p>
+
+                  <div>
+                    
+                    {% if request.accepted_count == 0 %}
+                    <p>Status:  {{ request.status }}</p>
+                       
+                    {% elif request.accepted_count == 2 %}
+                    <p>Status:  {{ request.status }}</p>
+                        
+                    {% else %}
+                        <p>Searching others</p>
+                    {% endif %}    
+                </div>
+
+
+
+                <button class="btn btn-secondary text-white font-semibold" onclick="showReceiverOnMap({{ request.id }}, 'myGroup')">See on Map</button>
+
+
+                <div >
+                        
+                
+                    {% if user in request.final_donors.all %}
+                        <p class="badge bg-success text-white"><span class="font-bold">Action: </span> Confirmed</p>
+                    {% elif user in request.accepted_donors.all %}
+
+                        {% if user in request.rejected_donors_by_requester.all %}
+                            <p class="badge bg-danger text-white"><span class="font-bold">Action: </span> Rejected</p>
+                            <a href="{% url 'ignore_blood_request' request.id %}" class="btn btn-danger text-white">Delete</a>
+                        {% else %}
+                            <p class="badge bg-primary text-white"><span class="font-bold">Action: </span> Approval Waiting</p>
+                        {% endif %}
+
+                    {% else %}
+
+                       {% if request.accepted_count != 2 %}
+                            <a href="{% url 'accept_blood_request' request.id %}" class="btn btn-primary text-white">Accept</a>
+                       {% endif %}
+                        <a href="{% url 'ignore_blood_request' request.id %}" class="btn btn-warning text-white">Ignore</a>
+
+                    {% endif %}
+                
+            </div>
+
+                 
+                </div>
+              </div>
+
+
+
+              
+            {% endif %}
+        {% endfor %}
+    </section>
+{% else %}
+    <p>No active blood requests available.</p>
+{% endif %}
+
+
+{% comment %} card start {% endcomment %}
+
+</section>
+
+
+
+ <div class="rounded-lg shadow-md bg-white border border-gray-200 hover:scale-105 hover:shadow-xl transition-transform duration-200 p-3 flex flex-col">
+                    <!-- Header: username & map button -->
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-sm font-semibold text-gray-800 truncate">Requester: {{ request.requester.username }}</h3>
+                        <button
+                            class="bg-blue-600 text-white text-xs px-2 py-1 rounded hover:bg-blue-700 transition"
+                            onclick="showReceiverOnMap({{ request.id }}, 'myGroup')"
+                        >
+                            Map
+                        </button>
+                    </div>
+                    <!-- Basic Info -->
+                    <div class="text-xs text-gray-600 space-y-1 mb-2">
+                        <p><strong>Blood:</strong> {{ request.blood_group }}</p>
+                        <p><strong>Address:</strong> {{ request.detail_address }}</p>
+                        <p><strong>Description:</strong> {{ request.description }}</p>
+                        <p><strong>Phone:</strong> {{ request.requester.donorprofile.phone }}</p>
+                        <p class="text-gray-500"><strong>Accepted:</strong> {{ request.accepted_count }}/2</p>
+                    </div>
+                    <!-- Status -->
+                    <div class="mb-2 text-xs">
+                        {% if request.accepted_count == 0 %}
+                            <p class="text-yellow-600"><strong>Status:</strong> {{ request.status }}</p>
+                        {% elif request.accepted_count == 2 %}
+                            <p class="text-green-600"><strong>Status:</strong> {{ request.status }}</p>
+                        {% else %}
+                            <p class="text-blue-600">Searching others...</p>
+                        {% endif %}
+                    </div>
+                    <!-- Action buttons -->
+                    <div class="flex flex-wrap gap-1 text-xs">
+                        {% if user in request.final_donors.all %}
+                            <span class="bg-green-400 text-white px-2 py-1 rounded font-semibold">Confirmed</span>
+                        {% elif user in request.accepted_donors.all %}
+                            {% if user in request.rejected_donors_by_requester.all %}
+                                <span class="bg-red-400 text-white px-2 py-1 rounded font-semibold">Rejected</span>
+                                <a href="{% url 'ignore_blood_request' request.id %}" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded transition text-xs">Delete</a>
+                            {% else %}
+                                <span class="bg-blue-400 text-white px-2 py-1 rounded font-semibold">Waiting</span>
+                            {% endif %}
+                        {% else %}
+                            {% if request.accepted_count != 2 %}
+                                <a href="{% url 'accept_blood_request' request.id %}" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition text-xs">Accept</a>
+                            {% endif %}
+                            <a href="{% url 'ignore_blood_request' request.id %}" class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded transition text-xs">Ignore</a>
+                        {% endif %}
+                    </div>
+                </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3rd
+
+
+                
+<section class="py-20 container mx-auto">
+    <h2 class="mt-4 text-center text-4xl py-4 font-bold text-blue-700">Active Blood Requests to me not my blood type</h2>
+
+<div class="grid grid-cols-2" border="1" style="width: 80%">
+{% if active_requests_otherGroup %}
+  
+       
+        {% for request in active_requests_otherGroup %}
+            {% if user not in request.request_ignored_by_donors.all %}
+
+
+            <div class="card card-border bg-base-300 w-96">
+                <div class="card-body">
+                  <p>Requester: {{ request.requester.username }}</p>
+                  <p>Blood Group: {{ request.blood_group }}</p>
+                  <p>Accepted Donors: {{ request.accepted_count }}/2</p>
+                  <p>Detailed Location: {{ request.detail_address }}</p>
+                  <p>Patient Details: {{ request.description }}</p>
+                  <p>Contact Number: {{ request.requester.donorprofile.phone }}</p>
+                  
+                  <div>
+                    {% if request.accepted_count == 0 %}
+                    <p>Status: {{ request.status }}</p>
+                        
+                    {% elif request.accepted_count == 2 %}
+                    <p>Status: {{ request.status }}</p>
+                        
+                    {% else %}
+                        <p><span class="font-semibold">Status: </span>Searching others</p>
+                    {% endif %} 
+                </div>
+
+
+                <button class="btn btn-primary" onclick="showReceiverOnMap({{ request.id }},'otherGroup')">See on Map</button>
+
+
+
+                {% comment %} modal start {% endcomment %}
+                <div>
+                        
+                    {% if request.status == 'Pending' %}
+                        <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#helpForm-{{request.id}}" style="box-shadow: 3px 3px 10px rgba(255, 255, 255, 0.6)">Help</button>
+                        <!-- Help form modal -->
+                        <div
+                        class="modal fade"
+                        id="helpForm-{{request.id}}"
+                        tabindex="-1"
+                        aria-labelledby="ModalLabel-helpForm"
+                        aria-hidden="true"
+                        >
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                    <h3
+                                        class="modal-title"
+                                        id="ModalLabel-{{request.id}}"
+                                    >
+                                        Helping Form
+                                    </h3>
+                                    <button
+                                        type="button"
+                                        class="btn-close"
+                                        data-bs-dismiss="modal"
+                                        aria-label="Close"
+                                    ></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <form  method="POST" action="{% url 'help_form' user.id request.requester.donorprofile.id request.id %}">
+                                            {% csrf_token %}
+                                            <div class="help-form">
+                                                <label for="name">Name:</label>
+                                                <input type="text" id="name" name="name" required>
+                                            
+                                                <label for="phone">Phone Number:</label>
+                                                <input type="tel" id="phone" name="phone" required>
+                                            
+                                                <label for="message">Message:</label>
+                                                <textarea id="message" name="message" rows="4" required></textarea>
+                                            </div>
+                                        
+                                            <button type="submit" >Submit</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <a href="{% url 'ignore_blood_request' request.id %}" class="btn btn-warning">Ignore</a>
+                    {% else %}
+                        <p>Nothing to do</p>
+                    {% endif %}
+                </div>
+                </div>
+              </div>
+
+
+
+              {% comment %} sample {% endcomment %}
+               
+            {% endif %}
+        {% endfor %}
+    </div>
+{% else %}
+    <p>No active blood requests available.</p>
+{% endif %}
+</section>
+
+
+
+
+
+
+
