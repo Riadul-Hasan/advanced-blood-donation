@@ -71,8 +71,8 @@
       <div class="bg-white rounded-2xl h-90 shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300  ">
         <!-- Card Header -->
         <div class="bg-gradient-to-r from-blue-100 to-amber-100  p-4 border-b">
-          <h3 class="text-2xl py-2 font-bold text-white-700">{{ request.requester.username }}'s request</h3>
-          <p class="text-sm text-gray-500">ID: {{ request.id }}</p>
+          <h3 class="text-2xl py-2 font-bold text-white-700 text-center text-blue-500">Request Id: {{ request.id }}</h3>
+          
         </div>
         
         <!-- Card Body -->
@@ -132,7 +132,7 @@
               {% endif %}
             </div>
             {% else %}
-            <p class="text-gray-500 text-sm italic py-2">No accepted donors yet.</p>
+            <p class="text-red-500  text-center mx-auto text-md font-semibold py-2 ">No accepted donors yet.</p>
             {% endif %}
   
            <div class="flex justify-between gap-4">
@@ -164,7 +164,7 @@
         <p class=" text-red-500 font-bold text-2xl ">No blood requests found</p>
       </div> {% endcomment %}
 
-      <div class="flex flex-col  justify-center items-center min-h-[300px] bg-gradient-to-br from-red-50 to-white rounded-xl p-8 shadow-lg text-center">
+      <div class="flex flex-col col-span-2  justify-center items-center min-h-[300px] bg-gradient-to-br from-red-50 to-white rounded-xl p-8 shadow-lg text-center">
         <div class="relative mb-6">
           <!-- Animated heartbeat icon -->
           <svg class="w-24 h-24 text-red-500 animate-pulse" style="animation-duration: 2s" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -189,10 +189,13 @@
     </div>
 
     <!-- Adding map here -->
-<div class="w-[50%]   mx-auto rounded-xl"s>
-    <h2 class="text-xl font-bold mb-4 ">Locate in Map</h2>
-    <div  id="map"></div>
+     {% if my_requests_for_blood %}
+<div class="w-[50%] max-h-[400px]   mx-auto rounded-xl"s>
+    <h2 class="text-xl font-bold mb-4 bg-blue-200 p-2 w-2/7 text-center flex items-center gap-4  rounded-lg"><span><i class="fa-solid fa-map-location-dot"></i></span>Locate in Map</h2>
+    <div class="max-h-[700px]"  id="map"></div>
 </div>
+{%endif%}
+ 
 
   </section>
   
@@ -247,7 +250,8 @@
       
       <div class="modal-action p-4 bg-gray-50">
         <form method="dialog">
-          <button class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">Close</button>
+          <button class="btn w-full py-2 bg-gray-500 text-white rounded hover:bg-gray-600">Close</button>
+          
         </form>
       </div>
     </div>
@@ -306,7 +310,8 @@
       
       <div class="modal-action p-4 bg-gray-50">
         <form method="dialog">
-          <button class="px-4 py-2 bg-amber-500 text-white rounded hover:bg-amber-600">Close</button>
+          <button class="px-4 py-2 bg-red-500 btn border-none  text-white rounded hover:bg-white hover:text-red-600"><span><i class="fa-solid fa-xmark"></i></span></button>
+          
         </form>
       </div>
     </div>
@@ -341,7 +346,7 @@
 {% comment %} duplicate  {% endcomment %}
 
 
-<section class="grid gap-4  p-4 " style="width: 80%; margin: auto;">
+<section class="grid gap-4 grid-cols-4   p-4 " style="width: 80%; margin: auto;">
     {% if active_requests_myGroup %}
         {% for request in active_requests_myGroup %}
             {% if user not in request.request_ignored_by_donors.all %}
@@ -423,14 +428,14 @@
                                 <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                                 </svg>
-                                <strong>Status:</strong> {{ request.status }}
-                            </div>
+                                <strong>Status: <span class="ml-2">&nbsp</span></strong> {{ request.status }}
+                            </div> 
                         {% elif request.accepted_count == 2 %}
                             <div class="flex items-center bg-green-50 text-green-700 px-3 py-1.5 rounded-lg border border-green-200">
                                 <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                 </svg>
-                                <strong>Status:</strong> {{ request.status }}
+                                <strong>Status: <span class="ml-2">&nbsp</span></strong> {{ request.status }}
                             </div>
                         {% else %}
                             <div class="flex items-center bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg border border-blue-200">

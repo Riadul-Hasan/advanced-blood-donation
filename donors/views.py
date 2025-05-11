@@ -39,7 +39,7 @@ def user_login(request):
             messages.error(request, "Invalid credentials")
     else:
         form = AuthenticationForm()
-    return render(request, 'register.html', {'form': form, 'type':'login'})
+    return render(request, 'login.html', {'form': form})
 
 
 @login_required
@@ -49,6 +49,8 @@ def user_logout(request):
     return redirect('login')
 
 def dashboard(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
 
     my_requests_for_blood = BloodRequest.objects.filter(requester=request.user).order_by("-created_at")
     active_requests_myGroup = BloodRequest.objects.filter(blood_group=request.user.donorprofile.blood_group, donors__in=[request.user]).exclude(requester=request.user).order_by("-created_at")
@@ -88,8 +90,10 @@ def update_location(request):
             return JsonResponse({"status": "success"})
     return JsonResponse({"status": "error"})
 
-@login_required
+
 def search_blood(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
     user_profile = request.user.donorprofile
     user_lat, user_lng = user_profile.latitude, user_profile.longitude
     # Get all pending blood requests (always load these)
@@ -311,8 +315,11 @@ def haversine(lat1, lon1, lat2, lon2):
     r = 6371  # Radius of earth in kilometers
     return c * r
 
-@login_required
+
 def create_blood_request(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
+    
     donors = DonorProfile.objects.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
 
     if request.method == "POST":

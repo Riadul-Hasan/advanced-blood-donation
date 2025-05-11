@@ -60,6 +60,7 @@
           <a class=" text-2xl font-bold"><span class="px-2"><i class="fa-solid fa-notes-medical"></i></span><span
               class="text-red-500">Red</span><span class="text-gray-500">Drop</span></a>
         </div>
+        {% if  request.user.is_authenticated %}
         <div class="navbar-center hidden lg:flex">
           <ul class="menu menu-horizontal px-1">
             <li> <a class="nav-link active text-md font-semibold " aria-current="page"
@@ -73,6 +74,7 @@
                 Search</a></li>
           </ul>
         </div>
+        {% endif %}
         <div class="navbar-end">
           {% if request.user.is_authenticated %}
           <a href="{% url 'logout'%}" class="btn btn-outline-success" type="submit">Logout</a>
@@ -89,32 +91,7 @@
     {% if messages %}
     {% for msg in messages %}
   
-    <!-- <div aria-live="polite" aria-atomic="true" class="position-relative">
-      <div class="toast-container top-0 end-0 p-3">
-        <div class="toast" style="background-color: rgba(237, 246, 248, 0.9)" role="alert" aria-live="assertive"
-          aria-atomic="true">
-          <div class="toast-header">
-            {% if msg.tags == 'success' %}
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTpBrFpH2FpYiRsG2DZ1FmeOOHaeixp8tTnfA&s"
-              class="rounded me-2" alt="img" />
-            {% elif msg.tags == 'error' %}
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQnSu2QXMDKpD5xXDZZuoYy1UG0tUdV5_oWVA&s"
-              class="rounded me-2" alt="img" />
-  
-            {% endif %}
-  
-            <strong class="me-auto">Alert!</strong>
-            <small class="text-muted">just now</small>
-            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-          </div>
-          <div class="toast-body">
-            <h6 {% if msg.tags %} class="text-{% if msg.tags == 'error' %}danger{% endif %}" {%endif%}>
-              {{msg}}
-            </h6>
-          </div>
-        </div>
-      </div>
-    </div> -->
+    
 
 
    
@@ -161,7 +138,7 @@
     {% endblock %}
 
 
-    <footer class="footer sm:footer-horizontal   bg-gradient-to-r from-gray-900 via-purple-800 to-black  text-white p-10">
+    <footer class="footer sm:footer-horizontal bg-gradient-to-r from-slate-800 to-blue-900 text-white p-10">
   <nav>
     <h6 class="footer-title">Services</h6>
     <a class="link link-hover">Branding</a>
